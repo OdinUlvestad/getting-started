@@ -1,0 +1,55 @@
+# The name of the pipeline
+name: Continues Integration
+
+# Controls when the workflow runs. Here the workflow wil run whenever someone
+# pushes code up or pulls code down from the repository from the main branch. 
+on: # The trigger for the workflow to begin testing
+  push: 
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allows to manually run the workflow from the Actions tab
+  workflow_dispatch: 
+
+# jobs define what the workflow does. So here we define what test we'd like our
+# code to run, as well as which actions we'd like to preform. These jobs or tasks
+# can run either in parallell or in sequence
+jobs:
+  test: # This workflow is defined as test
+    # Defines what image the tasks will run on
+    runs-on: ubuntu-latest
+    # Stepss represent a sequence which the tasks will be preformed in.
+    steps:
+        # This test checks out the github repo under $GITHUB_WORKSPACE, so our jobs can access it
+      - name: Check out Git-Hub repository
+        uses: actions/checkout@v3
+        # tests if able to run linux commands in our ubuntu image
+      - name: Run a single line script to see if yaml works as intended
+        run: |
+          echo Hello, world!  
+          echo The world responds hello back!
+  
+        # Set up support to run virual machines on the conteiner
+      - name: Set up support Docker container for running x86_64 virtal machines using QEMU
+        uses: docker/setup-qemu-action@v2
+
+        # Sets up a docker plugin that extends the docker commands to the CLI
+      - name: CLI plugin that extends the docker command with the full support of the features provided by Moby BuildKit builder toolkit
+        uses: docker/setup-buildx-action@v2
+
+        # Checks if possible to log into docker hub using Git-Hub secrets
+      - name: Log into docker hub from Git-Hub actions
+        uses: docker/login-action@v2
+        with: # Defined in Git-Hub Secrets, the credentials for loggin into my Docker hub account
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+      
+        # Checks if possible to build the container to my Docker container
+      - name: Build the docker image
+        id: build
+        run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_USER }}/cicd_pipeline
+
+        # Checks if able to push the container to the Docker Hub
+      - name: Push the Docker image
+        id: push
+        run: docker push ${{ secrets.DOCKER_USER }}/cicd_pipeline:latest
